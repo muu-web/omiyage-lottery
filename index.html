@@ -611,7 +611,7 @@ async function draw(){
         void $("countdown").offsetWidth;
         $("countdown").classList.add("pop");
       }
-      await new Promise(r => setTimeout(r, text==="GO!" ? 450 : 550));
+      await new Promise(r => setTimeout(r, text==="GO!" ? 900 : 1100));
     }
 
     if($("countdown")) $("countdown").textContent = "";
@@ -619,7 +619,7 @@ async function draw(){
     // Safariでも安定しやすい単純なsetInterval式
     await new Promise(resolve=>{
       let count = 0;
-      const max = 52;
+      const max = 90;
       const timer = setInterval(()=>{
         const pick = pool[Math.floor(Math.random()*pool.length)];
         $("num").textContent = String(pick.no).padStart(3,"0");
@@ -636,6 +636,8 @@ async function draw(){
     // 最終当選
     const win = pool[Math.floor(Math.random()*pool.length)];
     $("num").textContent = String(win.no).padStart(3,"0");
+    $("winner").textContent = "・・・";
+    await new Promise(r => setTimeout(r, 1500));
     $("winner").textContent = "🎉 " + (win.p.name || "名前未入力") + " さん当選！";
 
     const target = people.find(p => p.id === win.p.id);
