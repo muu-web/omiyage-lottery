@@ -309,6 +309,9 @@ button:disabled{opacity:.35}
 
   <div class="topbar">
     <div id="syncStatus" class="status">接続準備中…</div>
+    
+    <button id="soundBtn" style="padding:8px 12px;font-size:14px">🔊 効果音 ON</button>
+
     <button id="logoutBtn" style="padding:8px 12px;font-size:14px">ロック</button>
   </div>
 
@@ -637,8 +640,68 @@ function update(){
   $("start").disabled=drawing || winners.length>=winnerTarget || a.length===0;
 }
 
+
+let audioCtx = null;
+let soundEnabled = true;
+
+function getAudioCtx(){
+  if(!soundEnabled) return null;
+  try{
+    if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if(audioCtx.state === "suspended") audioCtx.resume();
+    return audioCtx;
+  }catch(e){ return null; }
+}
+
+function tone(freq=440, duration=.08, volume=.055, type="sine", delay=0){
+  const ctx=getAudioCtx();
+  if(!ctx) return;
+  const t=ctx.currentTime+delay;
+  const osc=ctx.createOscillator();
+  const gain=ctx.createGain();
+  osc.type=type;
+  osc.frequency.setValueAtTime(freq,t);
+  gain.gain.setValueAtTime(.0001,t);
+  gain.gain.exponentialRampToValueAtTime(volume,t+.01);
+  gain.gain.exponentialRampToValueAtTime(.0001,t+duration);
+  osc.connect(gain); gain.connect(ctx.destination);
+  osc.start(t); osc.stop(t+duration+.03);
+}
+
+function sfxCountdown(text){
+  if(text==="GO!"){
+    tone(660,.10,.07,"square",0);
+    tone(880,.14,.07,"square",.11);
+  }else{
+    tone(420,.09,.055,"square");
+  }
+}
+function sfxSpin(){
+  tone(260+Math.random()*170,.035,.025,"square");
+}
+function sfxFake(){
+  tone(520,.11,.06,"triangle",0);
+  tone(390,.16,.05,"triangle",.12);
+}
+function sfxResume(){
+  tone(420,.07,.045,"square",0);
+  tone(560,.07,.045,"square",.08);
+  tone(700,.09,.045,"square",.16);
+}
+function sfxFinalStop(){
+  tone(220,.13,.07,"sine",0);
+  tone(165,.20,.065,"sine",.13);
+}
+function sfxWinner(){
+  tone(523.25,.16,.075,"triangle",0);
+  tone(659.25,.16,.075,"triangle",.12);
+  tone(783.99,.16,.075,"triangle",.24);
+  tone(1046.5,.45,.09,"triangle",.38);
+}
+
 async function draw(){
   if(drawing) return;
+  getAudioCtx();
 
   const pool = ticketPool();
   if(!pool.length){
@@ -686,6 +749,7 @@ async function draw(){
   }
 
   async function fakeStop(item, line1, line2, hold1=1100, hold2=700){
+    sfxFake();
     $("num").textContent = String(item.no).padStart(3,"0");
     $("winner").textContent = line1.replace("{name}", item.p.name || "名前未入力");
     await wait(hold1);
@@ -702,6 +766,7 @@ async function draw(){
   try{
     // カウントダウン
     for(const text of ["3","2","1","GO!"]){
+      sfxCountdown(text);
       if($("countdown")){
         $("countdown").textContent = text;
         $("countdown").classList.remove("pop");
@@ -779,11 +844,13 @@ async function draw(){
     }
 
     // 本当の当選番号で停止
+    sfxFinalStop();
     $("num").textContent = String(win.no).padStart(3,"0");
     $("winner").textContent = "・・・・・・";
     await wait(1750);
 
     // 本当の当選者を表示
+    sfxWinner();
     $("winner").textContent = "🎉 " + (win.p.name || "名前未入力") + " さん当選！";
 
     const target = people.find(p => p.id === win.p.id);
@@ -893,6 +960,15 @@ $("winnerTargetInput").onchange=()=>{
   $("winnerTargetInput").value=v;
   update();
   scheduleSave();
+};
+
+$("soundBtn").onclick=()=>{
+  soundEnabled=!soundEnabled;
+  $("soundBtn").textContent=soundEnabled ? "🔊 効果音 ON" : "🔇 効果音 OFF";
+  if(soundEnabled){
+    getAudioCtx();
+    tone(660,.08,.045,"sine");
+  }
 };
 
 $("add").onclick=addPerson;
