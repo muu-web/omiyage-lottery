@@ -1,19 +1,539 @@
-<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>お土産抽選会</title>
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>お土産抽選会</title>
 <style>
-body{margin:0;background:#111;color:#fff;font-family:-apple-system,BlinkMacSystemFont,sans-serif}.wrap{max-width:700px;margin:auto;padding:14px}.card{background:#222;border-radius:16px;padding:16px;margin-bottom:14px}h1{text-align:center;font-size:28px}h2{font-size:20px}.person{display:grid;grid-template-columns:1fr 90px;gap:8px;margin:7px 0}input{width:100%;padding:12px;border:0;border-radius:9px;font-size:16px;box-sizing:border-box}button{border:0;border-radius:10px;padding:13px 16px;font-size:17px;font-weight:bold}.add{width:100%;margin-top:8px}.start{width:100%;font-size:24px;padding:18px}.start:disabled{opacity:.35}.num{text-align:center;font-size:72px;font-weight:900;margin:20px 0 5px}.winner{text-align:center;font-size:27px;font-weight:bold;min-height:40px}.stats{text-align:center;font-size:17px}.muted{color:#aaa}.history li{margin:8px 0;font-size:17px}
-</style></head><body><div class="wrap">
-<h1>🎁 お土産抽選会 🎟️</h1>
-<div class="card"><h2>参加者登録（最大35名）</h2><div id="people"></div><button class="add" id="add">＋参加者を追加</button><p class="muted">名前と抽選券枚数を入力してください。</p></div>
-<div class="card"><div class="stats">有効抽選券：<b id="total">0</b>枚　｜　残り：<b id="remain">3</b>個</div><div class="num" id="num">---</div><div class="winner" id="winner"></div><button class="start" id="start" disabled>🎰 抽選スタート</button></div>
-<div class="card"><h2>🏆 当選履歴</h2><ol id="history"><li class="muted">まだ当選者はいません</li></ol></div>
+:root{color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:#111;color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.wrap{max-width:760px;margin:auto;padding:14px 14px 40px}
+h1{text-align:center;font-size:30px;margin:18px 0 22px}
+h2{font-size:21px;margin:0 0 14px}
+.card{background:#222;border-radius:18px;padding:17px;margin-bottom:14px}
+.person{display:grid;grid-template-columns:1fr 92px 44px;gap:8px;margin:8px 0;align-items:center}
+input{width:100%;padding:13px;border:0;border-radius:10px;font-size:17px;background:#fff;color:#111}
+button{border:0;border-radius:11px;padding:13px 16px;font-size:17px;font-weight:700;cursor:pointer}
+button:disabled{opacity:.35}
+.add,.start,.reset,.syncbtn{width:100%}
+.add{margin-top:10px}
+.start{font-size:24px;padding:18px;margin-top:8px}
+.delete{padding:11px 0;background:#3a3a3a;color:#fff}
+.num{text-align:center;font-size:76px;font-weight:900;margin:22px 0 6px;letter-spacing:3px}
+.winner{text-align:center;font-size:27px;font-weight:800;min-height:42px}
+.stats{text-align:center;font-size:18px}
+.muted{color:#aaa}
+.history li{margin:9px 0;font-size:17px}
+.topbar{display:flex;gap:8px;align-items:center;justify-content:space-between;margin-bottom:10px}
+.status{font-size:14px;color:#aaa}
+.status.ok{color:#8fe09a}.status.err{color:#ff8e8e}.status.sync{color:#ffd37a}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.syncbtn{background:#343434;color:white}
+.reset{background:#5b2525;color:white}
+.loginCard{max-width:520px;margin:80px auto 0}
+.loginCard input{margin:10px 0}
+.loginCard button{width:100%;background:#efefef;color:#111}
+.small{font-size:13px;line-height:1.5}
+.hidden{display:none!important}
+@media(max-width:520px){
+.wrap{padding:10px}
+h1{font-size:27px}
+.card{padding:15px}
+.person{grid-template-columns:1fr 80px 42px}
+.num{font-size:65px}
+}
+</style>
+</head>
+<body>
+
+<div id="loginView" class="wrap">
+<div class="card loginCard">
+<h2>🔐 管理用パスコード</h2>
+<p class="muted">抽選データを読み込むため、設定した管理用パスコードを入力してください。</p>
+<input id="codeInput" type="password" autocomplete="off" placeholder="管理用パスコード">
+<button id="loginBtn">抽選会を開く</button>
+<p id="loginMsg" class="small muted"></p>
 </div>
+</div>
+
+<div id="appView" class="wrap hidden">
+<h1>🎁 お土産抽選会 🎟️</h1>
+
+<div class="topbar">
+<div id="syncStatus" class="status">接続準備中…</div>
+<button id="logoutBtn" style="padding:8px 12px;font-size:14px">ロック</button>
+</div>
+
+<div class="card">
+<h2>参加者登録（最大35名）</h2>
+<div id="people"></div>
+<button class="add" id="add">＋参加者を追加</button>
+<p class="muted">左：参加者名　右：抽選券枚数</p>
+</div>
+
+<div class="card">
+<div class="stats">有効抽選券：<b id="total">0</b>枚 ｜ 残り：<b id="remain">3</b>個</div>
+<div class="num" id="num">---</div>
+<div class="winner" id="winner"></div>
+<button class="start" id="start" disabled>🎰 抽選スタート</button>
+</div>
+
+<div class="card">
+<h2>🏆 当選履歴</h2>
+<ol id="history" class="history"></ol>
+</div>
+
+<div class="card">
+<div class="actions">
+<button class="syncbtn" id="syncBtn">🔄 今すぐ同期</button>
+<button class="reset" id="resetBtn">🗑 データをリセット</button>
+</div>
+<p class="muted small">データはSupabaseに保存されます。同じURLを別端末で開き、同じ管理用パスコードを入力すると共有できます。</p>
+</div>
+</div>
+
 <script>
-var people=[], winners=[], drawing=false;
-function addPerson(){if(people.length>=35){alert("35名までです");return}people.push({name:"",tickets:1,active:true});render()}
-function render(){var box=document.getElementById("people");box.innerHTML="";people.forEach(function(p,i){var d=document.createElement("div");d.className="person";var n=document.createElement("input");n.placeholder="参加者 "+(i+1);n.value=p.name;n.oninput=function(){p.name=n.value};var t=document.createElement("input");t.type="number";t.min="1";t.value=p.tickets;t.oninput=function(){p.tickets=Math.max(1,parseInt(t.value)||1);update()};d.appendChild(n);d.appendChild(t);box.appendChild(d)});update()}
-function tickets(){var a=[],no=1;people.forEach(function(p){if(p.active){for(var i=0;i<p.tickets;i++)a.push({no:no++,p:p})}});return a}
-function update(){var a=tickets();document.getElementById("total").textContent=a.length;document.getElementById("remain").textContent=3-winners.length;document.getElementById("start").disabled=drawing||winners.length>=3||a.length===0}
-function draw(){if(drawing)return;var a=tickets();if(!a.length)return;drawing=true;update();var count=0;var timer=setInterval(function(){var x=a[Math.floor(Math.random()*a.length)];document.getElementById("num").textContent=String(x.no).padStart(3,"0");document.getElementById("winner").textContent=x.p.name||"名前未入力";count++;if(count>35){clearInterval(timer);var win=a[Math.floor(Math.random()*a.length)];document.getElementById("num").textContent=String(win.no).padStart(3,"0");document.getElementById("winner").textContent="🎉 "+(win.p.name||"名前未入力")+" さん当選！";win.p.active=false;winners.push(win);var h=document.getElementById("history");if(winners.length===1)h.innerHTML="";var li=document.createElement("li");li.textContent="第"+winners.length+"回：抽選券 "+String(win.no).padStart(3,"0")+" → "+(win.p.name||"名前未入力")+" さん";h.appendChild(li);drawing=false;update()}},45)}
-document.getElementById("add").onclick=addPerson;document.getElementById("start").onclick=draw;
-for(var i=0;i<5;i++)addPerson();
-</script></body></html>
+const SUPABASE_URL="https://llhtlafabejeuisixotn.supabase.co";
+const SUPABASE_KEY="sb_publishable_7_tInfe2os27nOe2zoUWuw_136Yutnf";
+
+let accessCode="";
+let people=[];
+let winners=[];
+let drawing=false;
+let saveTimer=null;
+let polling=null;
+let lastCloudJson="";
+let localDirty=false;
+
+const $=id=>document.getElementById(id);
+
+function setStatus(text,cls=""){
+const el=$("syncStatus");
+el.textContent=text;
+el.className="status "+cls;
+}
+
+async function rpc(fn,body){
+const res=await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`,{
+method:"POST",
+headers:{
+"apikey":SUPABASE_KEY,
+"Content-Type":"application/json"
+},
+body:JSON.stringify(body)
+});
+const text=await res.text();
+
+if(!res.ok){
+let msg=text;
+try{
+const j=JSON.parse(text);
+msg=j.message||j.error_description||text;
+}catch(_){}
+throw new Error(msg);
+}
+
+if(!text)return null;
+try{return JSON.parse(text)}catch(_){return text}
+}
+
+function makeId(){
+if(window.crypto&&crypto.randomUUID)return crypto.randomUUID();
+return Date.now().toString(36)+Math.random().toString(36).slice(2);
+}
+
+function normalizedState(){
+return{
+people:people.map(p=>({
+id:p.id,
+name:String(p.name||""),
+tickets:Math.max(1,parseInt(p.tickets)||1),
+active:p.active!==false
+})),
+winners:winners.map(w=>({
+name:String(w.name||""),
+ticketNo:Number(w.ticketNo)||0,
+personId:w.personId||"",
+wonAt:w.wonAt||""
+})),
+drawing:false
+};
+}
+
+function applyState(data){
+const src=data&&typeof data==="object"?data:{};
+
+people=Array.isArray(src.people)?src.people.map(p=>({
+id:p.id||makeId(),
+name:String(p.name||""),
+tickets:Math.max(1,parseInt(p.tickets)||1),
+active:p.active!==false
+})):[];
+
+winners=Array.isArray(src.winners)?src.winners.slice(0,3).map(w=>({
+name:String(w.name||""),
+ticketNo:Number(w.ticketNo)||0,
+personId:w.personId||"",
+wonAt:w.wonAt||""
+})):[];
+
+drawing=false;
+render();
+}
+
+async function loadCloud(show=true){
+if(!accessCode||drawing||localDirty)return;
+
+if(show)setStatus("読み込み中…","sync");
+
+try{
+const data=await rpc("get_lottery_state",{p_code:accessCode});
+const json=JSON.stringify(data||{});
+
+if(json!==lastCloudJson){
+applyState(data);
+lastCloudJson=json;
+}
+
+setStatus("☁️ 同期済み","ok");
+}catch(e){
+setStatus("同期エラー","err");
+throw e;
+}
+}
+
+async function saveCloud(){
+if(!accessCode||drawing)return;
+
+clearTimeout(saveTimer);
+localDirty=true;
+setStatus("保存中…","sync");
+
+try{
+const state=normalizedState();
+
+await rpc("save_lottery_state",{
+p_code:accessCode,
+p_data:state
+});
+
+lastCloudJson=JSON.stringify(state);
+localDirty=false;
+setStatus("☁️ 保存済み","ok");
+
+}catch(e){
+localDirty=false;
+setStatus("保存エラー","err");
+alert("保存できませんでした。\n"+e.message);
+}
+}
+
+function scheduleSave(){
+localDirty=true;
+clearTimeout(saveTimer);
+saveTimer=setTimeout(saveCloud,450);
+}
+
+function addPerson(){
+if(people.length>=35){
+alert("参加者は35名までです。");
+return;
+}
+
+people.push({
+id:makeId(),
+name:"",
+tickets:1,
+active:true
+});
+
+render();
+scheduleSave();
+}
+
+function removePerson(i){
+if(people[i]&&people[i].active===false){
+alert("当選済みの参加者は削除できません。");
+return;
+}
+
+people.splice(i,1);
+render();
+scheduleSave();
+}
+
+function ticketPool(){
+const pool=[];
+let no=1;
+
+people.forEach(p=>{
+const count=Math.max(1,parseInt(p.tickets)||1);
+
+for(let i=0;i<count;i++){
+if(p.active!==false)pool.push({no,p});
+no++;
+}
+});
+
+return pool;
+}
+
+function render(){
+const box=$("people");
+box.innerHTML="";
+
+people.forEach((p,i)=>{
+const d=document.createElement("div");
+d.className="person";
+
+const n=document.createElement("input");
+n.placeholder="参加者 "+(i+1);
+n.value=p.name;
+n.disabled=p.active===false;
+
+n.oninput=()=>{
+p.name=n.value;
+update();
+scheduleSave();
+};
+
+const t=document.createElement("input");
+t.type="number";
+t.min="1";
+t.max="9999";
+t.value=p.tickets;
+t.disabled=p.active===false;
+
+t.oninput=()=>{
+p.tickets=Math.max(1,parseInt(t.value)||1);
+t.value=p.tickets;
+update();
+scheduleSave();
+};
+
+const del=document.createElement("button");
+del.className="delete";
+del.textContent=p.active===false?"🏆":"×";
+del.disabled=p.active===false;
+del.onclick=()=>removePerson(i);
+
+d.append(n,t,del);
+box.appendChild(d);
+});
+
+const h=$("history");
+h.innerHTML="";
+
+if(!winners.length){
+const li=document.createElement("li");
+li.className="muted";
+li.textContent="まだ当選者はいません";
+h.appendChild(li);
+}else{
+winners.forEach((w,i)=>{
+const li=document.createElement("li");
+li.textContent=
+`第${i+1}回：抽選券 ${String(w.ticketNo).padStart(3,"0")} → ${w.name||"名前未入力"} さん`;
+h.appendChild(li);
+});
+}
+
+update();
+}
+
+function update(){
+const a=ticketPool();
+
+$("total").textContent=a.length;
+$("remain").textContent=Math.max(0,3-winners.length);
+
+$("start").disabled=
+drawing||
+winners.length>=3||
+a.length===0;
+}
+
+async function draw(){
+if(drawing)return;
+
+const a=ticketPool();
+if(!a.length)return;
+
+const unnamed=a.some(x=>!String(x.p.name||"").trim());
+
+if(unnamed&&!confirm("名前が未入力の参加者がいます。このまま抽選しますか？")){
+return;
+}
+
+drawing=true;
+update();
+setStatus("抽選中…","sync");
+
+let count=0;
+
+const timer=setInterval(async()=>{
+const x=a[Math.floor(Math.random()*a.length)];
+
+$("num").textContent=String(x.no).padStart(3,"0");
+$("winner").textContent=x.p.name||"名前未入力";
+
+count++;
+
+if(count>35){
+clearInterval(timer);
+
+const win=a[Math.floor(Math.random()*a.length)];
+
+$("num").textContent=String(win.no).padStart(3,"0");
+$("winner").textContent=
+"🎉 "+(win.p.name||"名前未入力")+" さん当選！";
+
+const target=people.find(p=>p.id===win.p.id);
+
+if(target)target.active=false;
+
+winners.push({
+name:win.p.name||"名前未入力",
+ticketNo:win.no,
+personId:win.p.id,
+wonAt:new Date().toISOString()
+});
+
+drawing=false;
+render();
+await saveCloud();
+
+if(winners.length>=3){
+$("winner").textContent+=" 🏆 3名決定！";
+}
+}
+},45);
+}
+
+async function doLogin(){
+const code=$("codeInput").value;
+
+if(!code){
+$("loginMsg").textContent="パスコードを入力してください。";
+return;
+}
+
+$("loginBtn").disabled=true;
+$("loginMsg").textContent="接続しています…";
+
+try{
+accessCode=code;
+
+const data=await rpc("get_lottery_state",{
+p_code:accessCode
+});
+
+sessionStorage.setItem(
+"lottery_access_code",
+accessCode
+);
+
+applyState(data);
+lastCloudJson=JSON.stringify(data||{});
+
+$("loginView").classList.add("hidden");
+$("appView").classList.remove("hidden");
+
+setStatus("☁️ 同期済み","ok");
+startPolling();
+
+}catch(e){
+accessCode="";
+$("loginMsg").textContent=
+"パスコードが違うか、接続できませんでした。";
+}finally{
+$("loginBtn").disabled=false;
+}
+}
+
+function logout(){
+sessionStorage.removeItem("lottery_access_code");
+
+accessCode="";
+clearInterval(polling);
+
+$("appView").classList.add("hidden");
+$("loginView").classList.remove("hidden");
+
+$("codeInput").value="";
+$("loginMsg").textContent="";
+}
+
+function startPolling(){
+clearInterval(polling);
+
+polling=setInterval(async()=>{
+try{
+await loadCloud(false);
+}catch(_){}
+},3000);
+}
+
+async function resetAll(){
+const ok=confirm(
+"参加者・当選履歴をすべて削除して最初からやり直しますか？"
+);
+
+if(!ok)return;
+
+people=[];
+winners=[];
+drawing=false;
+
+$("num").textContent="---";
+$("winner").textContent="";
+
+for(let i=0;i<5;i++){
+people.push({
+id:makeId(),
+name:"",
+tickets:1,
+active:true
+});
+}
+
+render();
+await saveCloud();
+}
+
+$("add").onclick=addPerson;
+$("start").onclick=draw;
+$("loginBtn").onclick=doLogin;
+
+$("codeInput").addEventListener("keydown",e=>{
+if(e.key==="Enter")doLogin();
+});
+
+$("logoutBtn").onclick=logout;
+
+$("syncBtn").onclick=async()=>{
+try{
+localDirty=false;
+await loadCloud(true);
+}catch(e){
+alert("同期できませんでした。\n"+e.message);
+}
+};
+
+$("resetBtn").onclick=resetAll;
+
+(async function init(){
+const saved=sessionStorage.getItem(
+"lottery_access_code"
+);
+
+if(saved){
+accessCode=saved;
+$("codeInput").value=saved;
+await doLogin();
+}
+})();
+</script>
+</body>
+</html>
