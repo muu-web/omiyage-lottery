@@ -264,6 +264,31 @@ button:disabled{opacity:.35}
   .num{font-size:67px}
   .winnerName{font-size:35px}
 }
+
+.settingsGrid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+.settingBox{
+  background:rgba(255,255,255,.05);
+  border-radius:14px;
+  padding:12px;
+}
+.settingBox label{
+  display:block;
+  font-size:14px;
+  color:var(--muted);
+  margin-bottom:7px;
+}
+.settingBox input{
+  text-align:center;
+  font-weight:800;
+}
+@media(max-width:520px){
+  .settingsGrid{grid-template-columns:1fr 1fr}
+}
+
 </style>
 
 </head>
@@ -287,8 +312,24 @@ button:disabled{opacity:.35}
     <button id="logoutBtn" style="padding:8px 12px;font-size:14px">ロック</button>
   </div>
 
+
+<div class="card">
+  <h2>⚙️ 抽選設定</h2>
+  <div class="settingsGrid">
+    <div class="settingBox">
+      <label for="maxParticipantsInput">最大参加人数</label>
+      <input id="maxParticipantsInput" type="number" min="1" max="200" value="35">
+    </div>
+    <div class="settingBox">
+      <label for="winnerTargetInput">当選人数</label>
+      <input id="winnerTargetInput" type="number" min="1" max="200" value="3">
+    </div>
+  </div>
+  <p class="muted small">変更内容は自動保存され、別端末にも共有されます。</p>
+</div>
+
   <div class="card">
-    <h2>参加者登録（最大35名）</h2>
+    <h2>参加者登録（最大<span id="maxParticipantsLabel">35</span>名）</h2>
     <div id="people"></div>
     <button class="add" id="add">＋参加者を追加</button>
     <p class="muted">左：参加者名　右：抽選券枚数</p>
@@ -338,6 +379,8 @@ let saveTimer = null;
 let polling = null;
 let lastCloudJson = "";
 let localDirty = false;
+let maxParticipants = 35;
+let winnerTarget = 3;
 
 const $ = id => document.getElementById(id);
 
@@ -419,6 +462,10 @@ function normalizedState(){
       personId:w.personId || "",
       wonAt:w.wonAt || ""
     })),
+    settings:{
+      maxParticipants:maxParticipants,
+      winnerTarget:winnerTarget
+    },
     drawing:false
   };
 }
@@ -431,7 +478,11 @@ function applyState(data){
     tickets:Math.max(1,parseInt(p.tickets)||1),
     active:p.active!==false
   })) : [];
-  winners = Array.isArray(src.winners) ? src.winners.slice(0,3).map(w=>({
+  const s = src.settings && typeof src.settings==="object" ? src.settings : {};
+  maxParticipants = Math.min(200, Math.max(1, parseInt(s.maxParticipants)||35));
+  winnerTarget = Math.min(200, Math.max(1, parseInt(s.winnerTarget)||3));
+
+  winners = Array.isArray(src.winners) ? src.winners.map(w=>({
     name:String(w.name||""),
     ticketNo:Number(w.ticketNo)||0,
     personId:w.personId||"",
@@ -489,7 +540,7 @@ function scheduleSave(){
 }
 
 function addPerson(){
-  if(people.length>=35){alert("参加者は35名までです。");return}
+  if(people.length>=maxParticipants){alert(`参加者は最大${maxParticipants}名までです。`);return}
   people.push({id:makeId(),name:"",tickets:1,active:true});
   render();
   scheduleSave();
@@ -519,6 +570,10 @@ function ticketPool(){
 }
 
 function render(){
+  if($("maxParticipantsInput")) $("maxParticipantsInput").value=maxParticipants;
+  if($("winnerTargetInput")) $("winnerTargetInput").value=winnerTarget;
+  if($("maxParticipantsLabel")) $("maxParticipantsLabel").textContent=maxParticipants;
+
   const box=$("people");
   box.innerHTML="";
   people.forEach((p,i)=>{
@@ -578,8 +633,8 @@ function render(){
 function update(){
   const a=ticketPool();
   $("total").textContent=a.length;
-  $("remain").textContent=Math.max(0,3-winners.length);
-  $("start").disabled=drawing || winners.length>=3 || a.length===0;
+  $("remain").textContent=Math.max(0,winnerTarget-winners.length);
+  $("start").disabled=drawing || winners.length>=winnerTarget || a.length===0;
 }
 
 async function draw(){
@@ -663,7 +718,7 @@ async function draw(){
       $("winnerOverlay").classList.remove("hidden");
     }
 
-    if(winners.length >= 3){
+    if(winners.length >= winnerTarget){
       $("winner").textContent += " 🏆 3名決定！";
     }
 
@@ -728,6 +783,27 @@ async function resetAll(){
   render();
   await saveCloud();
 }
+
+$("maxParticipantsInput").onchange=()=>{
+  let v=Math.min(200,Math.max(1,parseInt($("maxParticipantsInput").value)||35));
+  if(v<people.length){
+    alert(`現在${people.length}名登録されています。最大参加人数は${people.length}名以上にしてください。`);
+    v=people.length;
+  }
+  maxParticipants=v;
+  $("maxParticipantsInput").value=v;
+  $("maxParticipantsLabel").textContent=v;
+  update();
+  scheduleSave();
+};
+
+$("winnerTargetInput").onchange=()=>{
+  let v=Math.min(200,Math.max(1,parseInt($("winnerTargetInput").value)||3));
+  winnerTarget=v;
+  $("winnerTargetInput").value=v;
+  update();
+  scheduleSave();
+};
 
 $("add").onclick=addPerson;
 $("start").onclick=draw;
