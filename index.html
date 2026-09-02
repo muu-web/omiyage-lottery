@@ -356,6 +356,7 @@ button:disabled{opacity:.35}
     <div class="actions">
       <button class="syncbtn" id="syncBtn">🔄 今すぐ同期</button>
       <button class="reset" id="resetBtn">🗑 データをリセット</button>
+<button id="resetWinnersBtn">🎯 抽選回数だけリセット</button>
     </div>
     <p class="muted small">データはSupabaseに保存されます。同じURLを別の端末で開き、同じ管理用パスコードを入力すると共有できます。</p>
   </div>
@@ -886,6 +887,29 @@ async function draw(){
     update();
     setStatus("抽選エラー","err");
   }
+}
+
+
+if($("resetWinnersBtn")){
+  $("resetWinnersBtn").onclick=async()=>{
+    if(!confirm("参加者名・抽選券枚数・設定はそのままで、当選履歴だけリセットしますか？")) return;
+
+    winners = [];
+    people = people.map(p=>({
+      ...p,
+      active:true
+    }));
+
+    drawing=false;
+    $("winner").textContent="";
+    $("num").textContent="---";
+    if($("winnerOverlay")) $("winnerOverlay").classList.add("hidden");
+
+    render();
+    update();
+    setStatus("抽選回数をリセットしました","ok");
+    await saveCloud();
+  };
 }
 
 async function doLogin(){
