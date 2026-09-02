@@ -651,15 +651,47 @@ async function draw(){
     return;
   }
 
-  // 本当の当選者は最初に確定しておく。
-  // 以降のフェイク演出ではこの結果を変更しない。
+  // 本当の当選者は最初に確定。
+  // 以降のフェイク演出では当選結果を変更しない。
   const win = pool[Math.floor(Math.random()*pool.length)];
 
-  // フェイク停止用：本当の当選券とは別の券を優先
+  // 本当の当選券以外をフェイク候補にする
   const fakeCandidates = pool.filter(x => x.no !== win.no);
-  const fake = fakeCandidates.length
-    ? fakeCandidates[Math.floor(Math.random()*fakeCandidates.length)]
-    : win;
+
+  function pickFake(excludedPeople = new Set()){
+    const preferred = fakeCandidates.filter(x => !excludedPeople.has(x.p.id));
+    const source = preferred.length ? preferred : fakeCandidates;
+    if(!source.length) return win;
+    return source[Math.floor(Math.random()*source.length)];
+  }
+
+  async function wait(ms){
+    return new Promise(r => setTimeout(r, ms));
+  }
+
+  async function spin(rounds, interval){
+    await new Promise(resolve=>{
+      let count = 0;
+      const timer = setInterval(()=>{
+        const pick = pool[Math.floor(Math.random()*pool.length)];
+        $("num").textContent = String(pick.no).padStart(3,"0");
+        $("winner").textContent = pick.p.name || "名前未入力";
+        count++;
+        if(count >= rounds){
+          clearInterval(timer);
+          resolve();
+        }
+      }, interval);
+    });
+  }
+
+  async function fakeStop(item, line1, line2, hold1=1100, hold2=700){
+    $("num").textContent = String(item.no).padStart(3,"0");
+    $("winner").textContent = line1.replace("{name}", item.p.name || "名前未入力");
+    await wait(hold1);
+    $("winner").textContent = line2;
+    await wait(hold2);
+  }
 
   drawing = true;
   update();
@@ -668,7 +700,7 @@ async function draw(){
   $("num").textContent = "---";
 
   try{
-    // 3 → 2 → 1 → GO!
+    // カウントダウン
     for(const text of ["3","2","1","GO!"]){
       if($("countdown")){
         $("countdown").textContent = text;
@@ -676,57 +708,80 @@ async function draw(){
         void $("countdown").offsetWidth;
         $("countdown").classList.add("pop");
       }
-      await new Promise(r => setTimeout(r, text==="GO!" ? 900 : 1100));
+      await wait(text==="GO!" ? 900 : 1100);
     }
-
     if($("countdown")) $("countdown").textContent = "";
 
-    // 1回目：しっかり回す
-    await new Promise(resolve=>{
-      let count = 0;
-      const max = 62;
-      const timer = setInterval(()=>{
-        const pick = pool[Math.floor(Math.random()*pool.length)];
-        $("num").textContent = String(pick.no).padStart(3,"0");
-        $("winner").textContent = pick.p.name || "名前未入力";
+    // 毎回ランダムで演出パターンを選択
+    const patternNo = Math.floor(Math.random()*5);
 
-        count++;
-        if(count >= max){
-          clearInterval(timer);
-          resolve();
-        }
-      }, 70);
-    });
+    if(patternNo === 0){
+      // パターンA：3段階フェイク
+      const used = new Set();
+      const f1 = pickFake(used); used.add(f1.p.id);
+      const f2 = pickFake(used); used.add(f2.p.id);
+      const f3 = pickFake(used);
 
-    // フェイク停止
-    $("num").textContent = String(fake.no).padStart(3,"0");
-    $("winner").textContent = "…… " + (fake.p.name || "名前未入力") + " さん？";
-    await new Promise(r => setTimeout(r, 1200));
+      await spin(65,70);
+      await fakeStop(f1, "…… {name} さん？", "😏 まだ決まらない…", 1150,700);
+      await spin(28,72);
+      await fakeStop(f2, "おっ！？ {name} さん…？", "🔥 もう一回！", 1050,650);
+      await spin(26,74);
+      await fakeStop(f3, "かなり怪しい… {name} さん？", "😈 まだ終わりません！", 1200,750);
+      await spin(32,76);
 
-    $("winner").textContent = "😏 ……まだ！";
-    await new Promise(r => setTimeout(r, 850));
+    } else if(patternNo === 1){
+      // パターンB：一度ほぼ決定したように見せて復活
+      const f1 = pickFake();
+      await spin(78,68);
+      await fakeStop(f1, "🎯 {name} さんで決まり…！？", "……と思ったら、まだ回る！", 1450,900);
+      await spin(48,74);
 
-    // 2回目：再回転
-    await new Promise(resolve=>{
-      let count = 0;
-      const max = 42;
-      const timer = setInterval(()=>{
-        const pick = pool[Math.floor(Math.random()*pool.length)];
-        $("num").textContent = String(pick.no).padStart(3,"0");
-        $("winner").textContent = pick.p.name || "名前未入力";
+    } else if(patternNo === 2){
+      // パターンC：短いフェイクを何度も
+      const used = new Set();
+      for(let i=0;i<4;i++){
+        await spin(i===0 ? 42 : 18, 68+i*4);
+        const f = pickFake(used);
+        used.add(f.p.id);
+        $("num").textContent = String(f.no).padStart(3,"0");
+        $("winner").textContent = ["👀 {name} さん？","⚡ {name} さん！？","💥 {name} さんか？","😳 {name} さん…？"][i]
+          .replace("{name}", f.p.name || "名前未入力");
+        await wait(650);
+      }
+      $("winner").textContent = "🎰 まだまだ回ります！";
+      await wait(650);
+      await spin(36,76);
 
-        count++;
-        if(count >= max){
-          clearInterval(timer);
-          resolve();
-        }
-      }, 72);
-    });
+    } else if(patternNo === 3){
+      // パターンD：静止時間を長めにした焦らし系
+      const f1 = pickFake();
+      const used = new Set([f1.p.id]);
+      const f2 = pickFake(used);
+
+      await spin(58,72);
+      await fakeStop(f1, "……止まった？ {name} さん", "🤫 まだ確定ではありません", 1700,950);
+      await spin(24,78);
+      await fakeStop(f2, "今度こそ… {name} さん？", "💫 最後のひと回し！", 1500,850);
+      await spin(34,80);
+
+    } else {
+      // パターンE：一度逆転したように見せる
+      const used = new Set();
+      const f1 = pickFake(used); used.add(f1.p.id);
+      const f2 = pickFake(used);
+
+      await spin(54,69);
+      await fakeStop(f1, "🔥 有力候補！ {name} さん", "まだ分からない…", 1000,600);
+      await spin(22,72);
+      await fakeStop(f2, "😱 まさかの逆転！？ {name} さん", "🎲 最終抽選へ！", 1250,800);
+      await spin(44,78);
+    }
 
     // 本当の当選番号で停止
     $("num").textContent = String(win.no).padStart(3,"0");
-    $("winner").textContent = "・・・";
-    await new Promise(r => setTimeout(r, 1600));
+    $("winner").textContent = "・・・・・・";
+    await wait(1750);
 
     // 本当の当選者を表示
     $("winner").textContent = "🎉 " + (win.p.name || "名前未入力") + " さん当選！";
@@ -745,7 +800,7 @@ async function draw(){
     render();
     await saveCloud();
 
-    if(typeof burstConfetti === "function") burstConfetti(130);
+    if(typeof burstConfetti === "function") burstConfetti(150);
 
     if($("overlayName") && $("overlayTicket") && $("winnerOverlay")){
       $("overlayName").textContent = (win.p.name || "名前未入力") + " さん";
