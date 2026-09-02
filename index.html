@@ -4,354 +4,546 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>お土産抽選会</title>
+
 <style>
-:root{color-scheme:dark}
+:root{
+  color-scheme:dark;
+  --bg:#0f1020;
+  --card:#191b31;
+  --card2:#222542;
+  --accent:#ffcf4a;
+  --accent2:#ff6ea9;
+  --accent3:#65e3ff;
+  --ok:#7ff7a8;
+  --text:#fff;
+  --muted:#b8b9c9;
+}
 *{box-sizing:border-box}
-body{margin:0;background:#111;color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-.wrap{max-width:760px;margin:auto;padding:14px 14px 40px}
-h1{text-align:center;font-size:30px;margin:18px 0 22px}
+html{scroll-behavior:smooth}
+body{
+  margin:0;
+  color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  background:
+    radial-gradient(circle at 10% 0%,rgba(255,110,169,.18),transparent 30%),
+    radial-gradient(circle at 90% 5%,rgba(101,227,255,.15),transparent 34%),
+    linear-gradient(180deg,#111223 0%,#0d0e18 100%);
+  min-height:100vh;
+}
+.wrap{max-width:760px;margin:auto;padding:14px 14px 48px}
+h1{
+  text-align:center;
+  font-size:32px;
+  margin:18px 0 22px;
+  text-shadow:0 0 22px rgba(255,207,74,.18);
+}
 h2{font-size:21px;margin:0 0 14px}
-.card{background:#222;border-radius:18px;padding:17px;margin-bottom:14px}
-.person{display:grid;grid-template-columns:1fr 92px 44px;gap:8px;margin:8px 0;align-items:center}
-input{width:100%;padding:13px;border:0;border-radius:10px;font-size:17px;background:#fff;color:#111}
-button{border:0;border-radius:11px;padding:13px 16px;font-size:17px;font-weight:700;cursor:pointer}
+.card{
+  background:linear-gradient(180deg,rgba(34,37,66,.98),rgba(25,27,49,.98));
+  border:1px solid rgba(255,255,255,.07);
+  box-shadow:0 12px 35px rgba(0,0,0,.22);
+  border-radius:22px;
+  padding:17px;
+  margin-bottom:16px;
+}
+.person{
+  display:grid;
+  grid-template-columns:1fr 92px 44px;
+  gap:8px;
+  margin:9px 0;
+  align-items:center
+}
+input{
+  width:100%;
+  padding:13px;
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:13px;
+  font-size:17px;
+  background:#fff;
+  color:#111;
+  outline:none;
+}
+input:focus{box-shadow:0 0 0 3px rgba(101,227,255,.22)}
+button{
+  border:0;
+  border-radius:14px;
+  padding:13px 16px;
+  font-size:17px;
+  font-weight:800;
+  cursor:pointer;
+  transition:transform .14s ease,filter .14s ease,opacity .14s ease;
+}
+button:active{transform:scale(.97)}
 button:disabled{opacity:.35}
 .add,.start,.reset,.syncbtn{width:100%}
-.add{margin-top:10px}
-.start{font-size:24px;padding:18px;margin-top:8px}
-.delete{padding:11px 0;background:#3a3a3a;color:#fff}
-.num{text-align:center;font-size:76px;font-weight:900;margin:22px 0 6px;letter-spacing:3px}
-.winner{text-align:center;font-size:27px;font-weight:800;min-height:42px}
-.stats{text-align:center;font-size:18px}
-.muted{color:#aaa}
-.history li{margin:9px 0;font-size:17px}
+.add{
+  margin-top:12px;
+  color:#10111b;
+  background:linear-gradient(135deg,#8ff4ff,#7dd6ff);
+  box-shadow:0 8px 18px rgba(101,227,255,.16)
+}
+.start{
+  font-size:25px;
+  padding:19px;
+  margin-top:10px;
+  color:#18120b;
+  background:linear-gradient(135deg,#ffd44f,#ff9f43 55%,#ff6ea9);
+  box-shadow:0 12px 30px rgba(255,159,67,.25);
+  animation:pulseGlow 2.2s infinite;
+}
+.start:disabled{animation:none;box-shadow:none}
+.delete{padding:11px 0;background:#343858;color:#fff}
+.num{
+  text-align:center;
+  font-size:82px;
+  font-weight:1000;
+  margin:20px 0 6px;
+  letter-spacing:4px;
+  font-variant-numeric:tabular-nums;
+  background:linear-gradient(180deg,#fff,#ffe68f 50%,#ffb347);
+  -webkit-background-clip:text;
+  background-clip:text;
+  color:transparent;
+  text-shadow:0 0 30px rgba(255,207,74,.12);
+}
+.winner{
+  text-align:center;
+  font-size:28px;
+  font-weight:900;
+  min-height:44px;
+}
+.stats{
+  text-align:center;
+  font-size:18px;
+  background:rgba(255,255,255,.05);
+  border-radius:14px;
+  padding:10px;
+}
+.muted{color:var(--muted)}
+.history li{
+  margin:10px 0;
+  font-size:17px;
+  background:rgba(255,255,255,.045);
+  padding:11px 13px;
+  border-radius:12px
+}
 .topbar{display:flex;gap:8px;align-items:center;justify-content:space-between;margin-bottom:10px}
 .status{font-size:14px;color:#aaa}
-.status.ok{color:#8fe09a}.status.err{color:#ff8e8e}.status.sync{color:#ffd37a}
+.status.ok{color:var(--ok)}.status.err{color:#ff8e8e}.status.sync{color:#ffd37a}
 .actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.syncbtn{background:#343434;color:white}
-.reset{background:#5b2525;color:white}
-.loginCard{max-width:520px;margin:80px auto 0}
+.syncbtn{background:#343858;color:white}
+.reset{background:#602b3a;color:white}
+.loginCard{
+  max-width:520px;
+  margin:80px auto 0;
+  text-align:center;
+}
 .loginCard input{margin:10px 0}
-.loginCard button{width:100%;background:#efefef;color:#111}
+.loginCard button{
+  width:100%;
+  color:#171219;
+  background:linear-gradient(135deg,#ffd44f,#ff9f43);
+}
 .small{font-size:13px;line-height:1.5}
 .hidden{display:none!important}
+.badge{
+  display:inline-block;
+  margin-left:6px;
+  padding:3px 8px;
+  border-radius:999px;
+  background:rgba(255,255,255,.08);
+  font-size:12px;
+  vertical-align:middle;
+}
+#drawCard{
+  position:relative;
+  overflow:hidden;
+}
+#drawCard::before{
+  content:"";
+  position:absolute;
+  inset:-80px;
+  background:conic-gradient(from 0deg,transparent,rgba(255,255,255,.045),transparent 30%);
+  animation:slowSpin 9s linear infinite;
+  pointer-events:none;
+}
+#drawCard>*{position:relative;z-index:1}
+.drawLabel{
+  text-align:center;
+  font-size:14px;
+  letter-spacing:.18em;
+  color:#d7d8e6;
+  margin-top:14px
+}
+.countdown{
+  text-align:center;
+  font-size:58px;
+  font-weight:1000;
+  min-height:74px;
+  margin:6px 0 2px;
+  color:#fff;
+  text-shadow:0 0 25px rgba(101,227,255,.32);
+}
+.countdown.pop{animation:countPop .52s ease}
+.winnerOverlay{
+  position:fixed;
+  inset:0;
+  z-index:9999;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
+  background:rgba(8,8,16,.78);
+  backdrop-filter:blur(12px);
+}
+.winnerBox{
+  width:min(620px,100%);
+  text-align:center;
+  border-radius:28px;
+  padding:34px 22px;
+  background:
+    radial-gradient(circle at 50% 0%,rgba(255,212,79,.2),transparent 42%),
+    linear-gradient(180deg,#252947,#17192d);
+  border:1px solid rgba(255,255,255,.10);
+  box-shadow:0 24px 80px rgba(0,0,0,.48);
+  animation:winnerIn .5s cubic-bezier(.2,.8,.2,1)
+}
+.winnerKicker{font-size:18px;color:#ffd978;font-weight:800}
+.winnerName{
+  font-size:42px;
+  line-height:1.15;
+  font-weight:1000;
+  margin:14px 0;
+  word-break:break-word;
+}
+.winnerTicket{font-size:19px;color:#d7d8e6}
+.winnerBox button{
+  margin-top:22px;
+  min-width:180px;
+  color:#16120c;
+  background:linear-gradient(135deg,#ffd44f,#ff9f43)
+}
+.confetti{
+  position:fixed;
+  top:-24px;
+  width:10px;
+  height:18px;
+  border-radius:2px;
+  z-index:10000;
+  pointer-events:none;
+  animation:confettiFall linear forwards;
+}
+.shake{animation:shake .28s linear 2}
+@keyframes pulseGlow{
+  0%,100%{filter:saturate(1);transform:translateY(0)}
+  50%{filter:saturate(1.2) brightness(1.05);transform:translateY(-1px)}
+}
+@keyframes slowSpin{to{transform:rotate(360deg)}}
+@keyframes countPop{
+  0%{transform:scale(.45);opacity:.25}
+  60%{transform:scale(1.18);opacity:1}
+  100%{transform:scale(1)}
+}
+@keyframes winnerIn{
+  from{transform:scale(.78) translateY(16px);opacity:0}
+  to{transform:scale(1) translateY(0);opacity:1}
+}
+@keyframes confettiFall{
+  to{transform:translate3d(var(--dx),110vh,0) rotate(720deg);opacity:.95}
+}
+@keyframes shake{
+  0%,100%{transform:translateX(0)}
+  25%{transform:translateX(-5px)}
+  75%{transform:translateX(5px)}
+}
 @media(max-width:520px){
-.wrap{padding:10px}
-h1{font-size:27px}
-.card{padding:15px}
-.person{grid-template-columns:1fr 80px 42px}
-.num{font-size:65px}
+  .wrap{padding:10px}
+  h1{font-size:28px}
+  .card{padding:15px}
+  .person{grid-template-columns:1fr 80px 42px}
+  .num{font-size:67px}
+  .winnerName{font-size:35px}
 }
 </style>
+
 </head>
 <body>
 
 <div id="loginView" class="wrap">
-<div class="card loginCard">
-<h2>🔐 管理用パスコード</h2>
-<p class="muted">抽選データを読み込むため、設定した管理用パスコードを入力してください。</p>
-<input id="codeInput" type="password" autocomplete="off" placeholder="管理用パスコード">
-<button id="loginBtn">抽選会を開く</button>
-<p id="loginMsg" class="small muted"></p>
-</div>
+  <div class="card loginCard">
+    <h2>🔐 管理用パスコード</h2>
+    <p class="muted">抽選データを読み込むため、設定した管理用パスコードを入力してください。</p>
+    <input id="codeInput" type="password" autocomplete="off" placeholder="管理用パスコード">
+    <button id="loginBtn">抽選会を開く</button>
+    <p id="loginMsg" class="small muted"></p>
+  </div>
 </div>
 
 <div id="appView" class="wrap hidden">
-<h1>🎁 お土産抽選会 🎟️</h1>
+  <h1>🎁 お土産抽選会 🎟️</h1>
 
-<div class="topbar">
-<div id="syncStatus" class="status">接続準備中…</div>
-<button id="logoutBtn" style="padding:8px 12px;font-size:14px">ロック</button>
-</div>
+  <div class="topbar">
+    <div id="syncStatus" class="status">接続準備中…</div>
+    <button id="logoutBtn" style="padding:8px 12px;font-size:14px">ロック</button>
+  </div>
 
-<div class="card">
-<h2>参加者登録（最大35名）</h2>
-<div id="people"></div>
-<button class="add" id="add">＋参加者を追加</button>
-<p class="muted">左：参加者名　右：抽選券枚数</p>
-</div>
+  <div class="card">
+    <h2>参加者登録（最大35名）</h2>
+    <div id="people"></div>
+    <button class="add" id="add">＋参加者を追加</button>
+    <p class="muted">左：参加者名　右：抽選券枚数</p>
+  </div>
 
-<div class="card">
-<div class="stats">有効抽選券：<b id="total">0</b>枚 ｜ 残り：<b id="remain">3</b>個</div>
+  <div class="card">
+    <div class="stats">有効抽選券：<b id="total">0</b>枚　｜　残り：<b id="remain">3</b>個</div>
+    <div class="drawLabel">🎲 LUCKY DRAW 🎲</div>
+<div class="countdown" id="countdown"></div>
 <div class="num" id="num">---</div>
-<div class="winner" id="winner"></div>
-<button class="start" id="start" disabled>🎰 抽選スタート</button>
+    <div class="winner" id="winner"></div>
+    <button class="start" id="start" disabled>🎰 抽選スタート</button>
+  </div>
+
+  <div class="card">
+    <h2>🏆 当選履歴</h2>
+    <ol id="history" class="history"></ol>
+  </div>
+
+  <div class="card">
+    <div class="actions">
+      <button class="syncbtn" id="syncBtn">🔄 今すぐ同期</button>
+      <button class="reset" id="resetBtn">🗑 データをリセット</button>
+    </div>
+    <p class="muted small">データはSupabaseに保存されます。同じURLを別の端末で開き、同じ管理用パスコードを入力すると共有できます。</p>
+  </div>
 </div>
 
-<div class="card">
-<h2>🏆 当選履歴</h2>
-<ol id="history" class="history"></ol>
-</div>
-
-<div class="card">
-<div class="actions">
-<button class="syncbtn" id="syncBtn">🔄 今すぐ同期</button>
-<button class="reset" id="resetBtn">🗑 データをリセット</button>
-</div>
-<p class="muted small">データはSupabaseに保存されます。同じURLを別端末で開き、同じ管理用パスコードを入力すると共有できます。</p>
-</div>
+<div id="winnerOverlay" class="winnerOverlay hidden">
+  <div class="winnerBox">
+    <div class="winnerKicker">🎉 CONGRATULATIONS 🎉</div>
+    <div class="winnerName" id="overlayName">当選！</div>
+    <div class="winnerTicket" id="overlayTicket"></div>
+    <button id="closeWinner">次へ！</button>
+  </div>
 </div>
 
 <script>
-const SUPABASE_URL="https://llhtlafabejeuisixotn.supabase.co";
-const SUPABASE_KEY="sb_publishable_7_tInfe2os27nOe2zoUWuw_136Yutnf";
+const SUPABASE_URL = "https://llhtlafabejeuisixotn.supabase.co";
+const SUPABASE_KEY = "sb_publishable_7_tInfe2os27nOe2zoUWuw_136Yutnf";
 
-let accessCode="";
-let people=[];
-let winners=[];
-let drawing=false;
-let saveTimer=null;
-let polling=null;
-let lastCloudJson="";
-let localDirty=false;
+let accessCode = "";
+let people = [];
+let winners = [];
+let drawing = false;
+let saveTimer = null;
+let polling = null;
+let lastCloudJson = "";
+let localDirty = false;
 
-const $=id=>document.getElementById(id);
+const $ = id => document.getElementById(id);
 
-function setStatus(text,cls=""){
-const el=$("syncStatus");
-el.textContent=text;
-el.className="status "+cls;
+function setStatus(text, cls=""){
+  const el=$("syncStatus");
+  el.textContent=text;
+  el.className="status "+cls;
 }
 
-async function rpc(fn,body){
-const res=await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`,{
-method:"POST",
-headers:{
-"apikey":SUPABASE_KEY,
-"Content-Type":"application/json"
-},
-body:JSON.stringify(body)
-});
-const text=await res.text();
-
-if(!res.ok){
-let msg=text;
-try{
-const j=JSON.parse(text);
-msg=j.message||j.error_description||text;
-}catch(_){}
-throw new Error(msg);
-}
-
-if(!text)return null;
-try{return JSON.parse(text)}catch(_){return text}
-}
-
-function makeId(){
-if(window.crypto&&crypto.randomUUID)return crypto.randomUUID();
-return Date.now().toString(36)+Math.random().toString(36).slice(2);
+async function rpc(fn, body){
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, {
+    method:"POST",
+    headers:{
+      "apikey":SUPABASE_KEY,
+      "Content-Type":"application/json"
+    },
+    body:JSON.stringify(body)
+  });
+  const text = await res.text();
+  if(!res.ok){
+    let msg=text;
+    try{
+      const j=JSON.parse(text);
+      msg=j.message || j.error_description || text;
+    }catch(_){}
+    throw new Error(msg);
+  }
+  if(!text) return null;
+  try{return JSON.parse(text)}catch(_){return text}
 }
 
 function normalizedState(){
-return{
-people:people.map(p=>({
-id:p.id,
-name:String(p.name||""),
-tickets:Math.max(1,parseInt(p.tickets)||1),
-active:p.active!==false
-})),
-winners:winners.map(w=>({
-name:String(w.name||""),
-ticketNo:Number(w.ticketNo)||0,
-personId:w.personId||"",
-wonAt:w.wonAt||""
-})),
-drawing:false
-};
+  return {
+    people: people.map(p=>({
+      id:p.id,
+      name:String(p.name||""),
+      tickets:Math.max(1,parseInt(p.tickets)||1),
+      active:p.active!==false
+    })),
+    winners:winners.map(w=>({
+      name:String(w.name||""),
+      ticketNo:Number(w.ticketNo)||0,
+      personId:w.personId || "",
+      wonAt:w.wonAt || ""
+    })),
+    drawing:false
+  };
 }
 
 function applyState(data){
-const src=data&&typeof data==="object"?data:{};
+  const src = data && typeof data==="object" ? data : {};
+  people = Array.isArray(src.people) ? src.people.map(p=>({
+    id:p.id || makeId(),
+    name:String(p.name||""),
+    tickets:Math.max(1,parseInt(p.tickets)||1),
+    active:p.active!==false
+  })) : [];
+  winners = Array.isArray(src.winners) ? src.winners.slice(0,3).map(w=>({
+    name:String(w.name||""),
+    ticketNo:Number(w.ticketNo)||0,
+    personId:w.personId||"",
+    wonAt:w.wonAt||""
+  })) : [];
+  drawing=false;
+  render();
+}
 
-people=Array.isArray(src.people)?src.people.map(p=>({
-id:p.id||makeId(),
-name:String(p.name||""),
-tickets:Math.max(1,parseInt(p.tickets)||1),
-active:p.active!==false
-})):[];
-
-winners=Array.isArray(src.winners)?src.winners.slice(0,3).map(w=>({
-name:String(w.name||""),
-ticketNo:Number(w.ticketNo)||0,
-personId:w.personId||"",
-wonAt:w.wonAt||""
-})):[];
-
-drawing=false;
-render();
+function makeId(){
+  if(window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  return Date.now().toString(36)+Math.random().toString(36).slice(2);
 }
 
 async function loadCloud(show=true){
-if(!accessCode||drawing||localDirty)return;
-
-if(show)setStatus("読み込み中…","sync");
-
-try{
-const data=await rpc("get_lottery_state",{p_code:accessCode});
-const json=JSON.stringify(data||{});
-
-if(json!==lastCloudJson){
-applyState(data);
-lastCloudJson=json;
-}
-
-setStatus("☁️ 同期済み","ok");
-}catch(e){
-setStatus("同期エラー","err");
-throw e;
-}
+  if(!accessCode) return;
+  if(drawing || localDirty) return;
+  if(show) setStatus("読み込み中…","sync");
+  try{
+    const data=await rpc("get_lottery_state",{p_code:accessCode});
+    const json=JSON.stringify(data||{});
+    if(json!==lastCloudJson){
+      applyState(data);
+      lastCloudJson=json;
+    }
+    setStatus("☁️ 同期済み","ok");
+  }catch(e){
+    setStatus("同期エラー","err");
+    throw e;
+  }
 }
 
 async function saveCloud(){
-if(!accessCode||drawing)return;
-
-clearTimeout(saveTimer);
-localDirty=true;
-setStatus("保存中…","sync");
-
-try{
-const state=normalizedState();
-
-await rpc("save_lottery_state",{
-p_code:accessCode,
-p_data:state
-});
-
-lastCloudJson=JSON.stringify(state);
-localDirty=false;
-setStatus("☁️ 保存済み","ok");
-
-}catch(e){
-localDirty=false;
-setStatus("保存エラー","err");
-alert("保存できませんでした。\n"+e.message);
-}
+  if(!accessCode || drawing) return;
+  clearTimeout(saveTimer);
+  localDirty=true;
+  setStatus("保存中…","sync");
+  try{
+    const state=normalizedState();
+    await rpc("save_lottery_state",{p_code:accessCode,p_data:state});
+    lastCloudJson=JSON.stringify(state);
+    localDirty=false;
+    setStatus("☁️ 保存済み","ok");
+  }catch(e){
+    localDirty=false;
+    setStatus("保存エラー","err");
+    alert("保存できませんでした。\n"+e.message);
+  }
 }
 
 function scheduleSave(){
-localDirty=true;
-clearTimeout(saveTimer);
-saveTimer=setTimeout(saveCloud,450);
+  localDirty=true;
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(saveCloud,450);
 }
 
 function addPerson(){
-if(people.length>=35){
-alert("参加者は35名までです。");
-return;
-}
-
-people.push({
-id:makeId(),
-name:"",
-tickets:1,
-active:true
-});
-
-render();
-scheduleSave();
+  if(people.length>=35){alert("参加者は35名までです。");return}
+  people.push({id:makeId(),name:"",tickets:1,active:true});
+  render();
+  scheduleSave();
 }
 
 function removePerson(i){
-if(people[i]&&people[i].active===false){
-alert("当選済みの参加者は削除できません。");
-return;
-}
-
-people.splice(i,1);
-render();
-scheduleSave();
+  if(people[i] && people[i].active===false){
+    alert("当選済みの参加者は削除できません。リセットを使ってください。");
+    return;
+  }
+  people.splice(i,1);
+  render();
+  scheduleSave();
 }
 
 function ticketPool(){
-const pool=[];
-let no=1;
-
-people.forEach(p=>{
-const count=Math.max(1,parseInt(p.tickets)||1);
-
-for(let i=0;i<count;i++){
-if(p.active!==false)pool.push({no,p});
-no++;
-}
-});
-
-return pool;
+  const pool=[];
+  let no=1;
+  people.forEach(p=>{
+    const count=Math.max(1,parseInt(p.tickets)||1);
+    for(let i=0;i<count;i++){
+      if(p.active!==false) pool.push({no,p});
+      no++;
+    }
+  });
+  return pool;
 }
 
 function render(){
-const box=$("people");
-box.innerHTML="";
+  const box=$("people");
+  box.innerHTML="";
+  people.forEach((p,i)=>{
+    const d=document.createElement("div");
+    d.className="person";
 
-people.forEach((p,i)=>{
-const d=document.createElement("div");
-d.className="person";
+    const n=document.createElement("input");
+    n.placeholder="参加者 "+(i+1);
+    n.value=p.name;
+    n.disabled=p.active===false;
+    n.oninput=()=>{
+      p.name=n.value;
+      update();
+      scheduleSave();
+    };
 
-const n=document.createElement("input");
-n.placeholder="参加者 "+(i+1);
-n.value=p.name;
-n.disabled=p.active===false;
+    const t=document.createElement("input");
+    t.type="number";
+    t.min="1";
+    t.max="9999";
+    t.value=p.tickets;
+    t.disabled=p.active===false;
+    t.oninput=()=>{
+      p.tickets=Math.max(1,parseInt(t.value)||1);
+      t.value=p.tickets;
+      update();
+      scheduleSave();
+    };
 
-n.oninput=()=>{
-p.name=n.value;
-update();
-scheduleSave();
-};
+    const del=document.createElement("button");
+    del.className="delete";
+    del.textContent=p.active===false ? "🏆" : "×";
+    del.disabled=p.active===false;
+    del.onclick=()=>removePerson(i);
 
-const t=document.createElement("input");
-t.type="number";
-t.min="1";
-t.max="9999";
-t.value=p.tickets;
-t.disabled=p.active===false;
+    d.append(n,t,del);
+    box.appendChild(d);
+  });
 
-t.oninput=()=>{
-p.tickets=Math.max(1,parseInt(t.value)||1);
-t.value=p.tickets;
-update();
-scheduleSave();
-};
-
-const del=document.createElement("button");
-del.className="delete";
-del.textContent=p.active===false?"🏆":"×";
-del.disabled=p.active===false;
-del.onclick=()=>removePerson(i);
-
-d.append(n,t,del);
-box.appendChild(d);
-});
-
-const h=$("history");
-h.innerHTML="";
-
-if(!winners.length){
-const li=document.createElement("li");
-li.className="muted";
-li.textContent="まだ当選者はいません";
-h.appendChild(li);
-}else{
-winners.forEach((w,i)=>{
-const li=document.createElement("li");
-li.textContent=
-`第${i+1}回：抽選券 ${String(w.ticketNo).padStart(3,"0")} → ${w.name||"名前未入力"} さん`;
-h.appendChild(li);
-});
-}
-
-update();
+  const h=$("history");
+  h.innerHTML="";
+  if(!winners.length){
+    const li=document.createElement("li");
+    li.className="muted";
+    li.textContent="まだ当選者はいません";
+    h.appendChild(li);
+  }else{
+    winners.forEach((w,i)=>{
+      const li=document.createElement("li");
+      li.textContent=`第${i+1}回：抽選券 ${String(w.ticketNo).padStart(3,"0")} → ${w.name||"名前未入力"} さん`;
+      h.appendChild(li);
+    });
+  }
+  update();
 }
 
 function update(){
-const a=ticketPool();
-
-$("total").textContent=a.length;
-$("remain").textContent=Math.max(0,3-winners.length);
-
-$("start").disabled=
-drawing||
-winners.length>=3||
-a.length===0;
+  const a=ticketPool();
+  $("total").textContent=a.length;
+  $("remain").textContent=Math.max(0,3-winners.length);
+  $("start").disabled=drawing || winners.length>=3 || a.length===0;
 }
 
 async function draw(){
@@ -368,29 +560,49 @@ return;
 
 drawing=true;
 update();
-setStatus("抽選中…","sync");
+setStatus("抽選スタート！","sync");
+$("winner").textContent="";
+$("num").textContent="---";
 
-let count=0;
+for(const x of ["3","2","1","GO!"]){
+  showCountdownText(x);
+  if(navigator.vibrate) navigator.vibrate(40);
+  await sleep(x==="GO!"?450:600);
+}
+$("countdown").textContent="";
 
-const timer=setInterval(async()=>{
-const x=a[Math.floor(Math.random()*a.length)];
+const duration=3300;
+const start=performance.now();
+let last=0;
 
-$("num").textContent=String(x.no).padStart(3,"0");
-$("winner").textContent=x.p.name||"名前未入力";
+await new Promise(resolve=>{
+  function step(now){
+    const elapsed=now-start;
+    const progress=Math.min(1,elapsed/duration);
+    const interval=45 + Math.pow(progress,3)*320;
 
-count++;
+    if(now-last>=interval){
+      last=now;
+      const x=a[Math.floor(Math.random()*a.length)];
+      $("num").textContent=String(x.no).padStart(3,"0");
+      $("winner").textContent=x.p.name||"名前未入力";
+      $("drawCard").classList.remove("shake");
+      void $("drawCard").offsetWidth;
+      $("drawCard").classList.add("shake");
+    }
 
-if(count>35){
-clearInterval(timer);
+    if(progress<1) requestAnimationFrame(step);
+    else resolve();
+  }
+  requestAnimationFrame(step);
+});
 
 const win=a[Math.floor(Math.random()*a.length)];
 
 $("num").textContent=String(win.no).padStart(3,"0");
-$("winner").textContent=
-"🎉 "+(win.p.name||"名前未入力")+" さん当選！";
+$("winner").textContent="🎉 "+(win.p.name||"名前未入力")+" さん当選！";
 
 const target=people.find(p=>p.id===win.p.id);
-
 if(target)target.active=false;
 
 winners.push({
@@ -404,135 +616,89 @@ drawing=false;
 render();
 await saveCloud();
 
+showWinnerOverlay(win.p.name||"名前未入力",win.no);
+
 if(winners.length>=3){
 $("winner").textContent+=" 🏆 3名決定！";
 }
 }
-},45);
-}
 
 async function doLogin(){
-const code=$("codeInput").value;
-
-if(!code){
-$("loginMsg").textContent="パスコードを入力してください。";
-return;
-}
-
-$("loginBtn").disabled=true;
-$("loginMsg").textContent="接続しています…";
-
-try{
-accessCode=code;
-
-const data=await rpc("get_lottery_state",{
-p_code:accessCode
-});
-
-sessionStorage.setItem(
-"lottery_access_code",
-accessCode
-);
-
-applyState(data);
-lastCloudJson=JSON.stringify(data||{});
-
-$("loginView").classList.add("hidden");
-$("appView").classList.remove("hidden");
-
-setStatus("☁️ 同期済み","ok");
-startPolling();
-
-}catch(e){
-accessCode="";
-$("loginMsg").textContent=
-"パスコードが違うか、接続できませんでした。";
-}finally{
-$("loginBtn").disabled=false;
-}
+  const code=$("codeInput").value;
+  if(!code){$("loginMsg").textContent="パスコードを入力してください。";return}
+  $("loginBtn").disabled=true;
+  $("loginMsg").textContent="接続しています…";
+  try{
+    accessCode=code;
+    const data=await rpc("get_lottery_state",{p_code:accessCode});
+    sessionStorage.setItem("lottery_access_code",accessCode);
+    applyState(data);
+    lastCloudJson=JSON.stringify(data||{});
+    $("loginView").classList.add("hidden");
+    $("appView").classList.remove("hidden");
+    setStatus("☁️ 同期済み","ok");
+    startPolling();
+  }catch(e){
+    accessCode="";
+    $("loginMsg").textContent="パスコードが違うか、接続できませんでした。";
+  }finally{
+    $("loginBtn").disabled=false;
+  }
 }
 
 function logout(){
-sessionStorage.removeItem("lottery_access_code");
-
-accessCode="";
-clearInterval(polling);
-
-$("appView").classList.add("hidden");
-$("loginView").classList.remove("hidden");
-
-$("codeInput").value="";
-$("loginMsg").textContent="";
+  sessionStorage.removeItem("lottery_access_code");
+  accessCode="";
+  clearInterval(polling);
+  $("appView").classList.add("hidden");
+  $("loginView").classList.remove("hidden");
+  $("codeInput").value="";
+  $("loginMsg").textContent="";
 }
 
 function startPolling(){
-clearInterval(polling);
-
-polling=setInterval(async()=>{
-try{
-await loadCloud(false);
-}catch(_){}
-},3000);
+  clearInterval(polling);
+  polling=setInterval(async ()=>{
+    try{await loadCloud(false)}catch(_){}
+  },3000);
 }
 
 async function resetAll(){
-const ok=confirm(
-"参加者・当選履歴をすべて削除して最初からやり直しますか？"
-);
-
-if(!ok)return;
-
-people=[];
-winners=[];
-drawing=false;
-
-$("num").textContent="---";
-$("winner").textContent="";
-
-for(let i=0;i<5;i++){
-people.push({
-id:makeId(),
-name:"",
-tickets:1,
-active:true
-});
-}
-
-render();
-await saveCloud();
+  const ok=confirm("参加者・当選履歴をすべて削除して最初からやり直しますか？");
+  if(!ok) return;
+  people=[];
+  winners=[];
+  drawing=false;
+  $("num").textContent="---";
+  $("winner").textContent="";
+  for(let i=0;i<5;i++) people.push({id:makeId(),name:"",tickets:1,active:true});
+  render();
+  await saveCloud();
 }
 
 $("add").onclick=addPerson;
 $("start").onclick=draw;
 $("loginBtn").onclick=doLogin;
-
-$("codeInput").addEventListener("keydown",e=>{
-if(e.key==="Enter")doLogin();
-});
-
+$("codeInput").addEventListener("keydown",e=>{if(e.key==="Enter")doLogin()});
 $("logoutBtn").onclick=logout;
-
-$("syncBtn").onclick=async()=>{
-try{
-localDirty=false;
-await loadCloud(true);
-}catch(e){
-alert("同期できませんでした。\n"+e.message);
-}
+$("syncBtn").onclick=async ()=>{
+  try{
+    localDirty=false;
+    await loadCloud(true);
+  }catch(e){
+    alert("同期できませんでした。\n"+e.message);
+  }
 };
-
 $("resetBtn").onclick=resetAll;
+$("closeWinner").onclick=()=>$("winnerOverlay").classList.add("hidden");
 
 (async function init(){
-const saved=sessionStorage.getItem(
-"lottery_access_code"
-);
-
-if(saved){
-accessCode=saved;
-$("codeInput").value=saved;
-await doLogin();
-}
+  const saved=sessionStorage.getItem("lottery_access_code");
+  if(saved){
+    accessCode=saved;
+    $("codeInput").value=saved;
+    await doLogin();
+  }
 })();
 </script>
 </body>
