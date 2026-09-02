@@ -678,7 +678,28 @@ function sfxCountdown(text){
   }
 }
 function sfxSpin(){
-  tone(260+Math.random()*170,.035,.025,"square");
+  const ctx=getAudioCtx();
+  if(!ctx) return;
+  const t=ctx.currentTime;
+
+  // スネアっぽい高音
+  const o1=ctx.createOscillator(), g1=ctx.createGain();
+  o1.type="square";
+  o1.frequency.setValueAtTime(170+Math.random()*70,t);
+  g1.gain.setValueAtTime(.035,t);
+  g1.gain.exponentialRampToValueAtTime(.0001,t+.055);
+  o1.connect(g1); g1.connect(ctx.destination);
+  o1.start(t); o1.stop(t+.06);
+
+  // ドラムの低い胴鳴り
+  const o2=ctx.createOscillator(), g2=ctx.createGain();
+  o2.type="sine";
+  o2.frequency.setValueAtTime(105,t);
+  o2.frequency.exponentialRampToValueAtTime(62,t+.075);
+  g2.gain.setValueAtTime(.055,t);
+  g2.gain.exponentialRampToValueAtTime(.0001,t+.085);
+  o2.connect(g2); g2.connect(ctx.destination);
+  o2.start(t); o2.stop(t+.09);
 }
 function sfxFake(){
   tone(520,.11,.06,"triangle",0);
@@ -694,10 +715,21 @@ function sfxFinalStop(){
   tone(165,.20,.065,"sine",.13);
 }
 function sfxWinner(){
-  tone(523.25,.16,.075,"triangle",0);
-  tone(659.25,.16,.075,"triangle",.12);
-  tone(783.99,.16,.075,"triangle",.24);
-  tone(1046.5,.45,.09,"triangle",.38);
+  // 「ジャジャジャジャーン！」風の長めのファンファーレ
+  const notes=[
+    [392.00,.16,0.00],[523.25,.16,0.00],[659.25,.16,0.00],
+    [440.00,.16,0.20],[587.33,.16,0.20],[698.46,.16,0.20],
+    [493.88,.18,0.40],[659.25,.18,0.40],[783.99,.18,0.40],
+    [523.25,.55,0.64],[659.25,.55,0.64],[783.99,.55,0.64],[1046.50,.70,0.64]
+  ];
+  notes.forEach(([f,d,delay])=>{
+    tone(f,d,.055,"sawtooth",delay);
+    tone(f/2,d,.025,"triangle",delay);
+  });
+  // 最後にキラッとした上昇音
+  tone(1046.50,.12,.045,"sine",1.18);
+  tone(1318.51,.16,.05,"sine",1.30);
+  tone(1567.98,.32,.055,"sine",1.45);
 }
 
 async function draw(){
