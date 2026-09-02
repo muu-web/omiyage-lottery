@@ -294,7 +294,7 @@ button:disabled{opacity:.35}
     <p class="muted">左：参加者名　右：抽選券枚数</p>
   </div>
 
-  <div class="card">
+  <div class="card" id="drawCard">
     <div class="stats">有効抽選券：<b id="total">0</b>枚　｜　残り：<b id="remain">3</b>個</div>
     <div class="drawLabel">🎲 LUCKY DRAW 🎲</div>
 <div class="countdown" id="countdown"></div>
@@ -345,6 +345,42 @@ function setStatus(text, cls=""){
   const el=$("syncStatus");
   el.textContent=text;
   el.className="status "+cls;
+}
+
+function sleep(ms){
+  return new Promise(resolve=>setTimeout(resolve,ms));
+}
+
+function showCountdownText(text){
+  const el=$("countdown");
+  el.textContent=text;
+  el.classList.remove("pop");
+  void el.offsetWidth;
+  el.classList.add("pop");
+}
+
+function burstConfetti(count=110){
+  const colors=["#ffd44f","#ff6ea9","#65e3ff","#7ff7a8","#ffffff","#b08cff"];
+  for(let i=0;i<count;i++){
+    const c=document.createElement("div");
+    c.className="confetti";
+    c.style.left=(Math.random()*100)+"vw";
+    c.style.background=colors[Math.floor(Math.random()*colors.length)];
+    c.style.setProperty("--dx",((Math.random()-.5)*240)+"px");
+    c.style.animationDuration=(2.2+Math.random()*2.5)+"s";
+    c.style.animationDelay=(Math.random()*.35)+"s";
+    c.style.transform=`rotate(${Math.random()*360}deg)`;
+    document.body.appendChild(c);
+    setTimeout(()=>c.remove(),5500);
+  }
+}
+
+function showWinnerOverlay(name,ticketNo){
+  $("overlayName").textContent=(name||"名前未入力")+" さん";
+  $("overlayTicket").textContent="🎟 抽選券 "+String(ticketNo).padStart(3,"0");
+  $("winnerOverlay").classList.remove("hidden");
+  burstConfetti(120);
+  if(navigator.vibrate) navigator.vibrate([120,80,180]);
 }
 
 async function rpc(fn, body){
@@ -547,80 +583,95 @@ function update(){
 }
 
 async function draw(){
-if(drawing)return;
+  if(drawing) return;
 
-const a=ticketPool();
-if(!a.length)return;
+  const pool = ticketPool();
+  if(!pool.length){
+    alert("有効な抽選券がありません。");
+    return;
+  }
 
-const unnamed=a.some(x=>!String(x.p.name||"").trim());
+  const unnamed = pool.some(x => !String(x.p.name || "").trim());
+  if(unnamed && !confirm("名前が未入力の参加者がいます。このまま抽選しますか？")){
+    return;
+  }
 
-if(unnamed&&!confirm("名前が未入力の参加者がいます。このまま抽選しますか？")){
-return;
-}
+  drawing = true;
+  update();
+  setStatus("🎰 抽選中…","sync");
+  $("winner").textContent = "";
+  $("num").textContent = "---";
 
-drawing=true;
-update();
-setStatus("抽選スタート！","sync");
-$("winner").textContent="";
-$("num").textContent="---";
-
-for(const x of ["3","2","1","GO!"]){
-  showCountdownText(x);
-  if(navigator.vibrate) navigator.vibrate(40);
-  await sleep(x==="GO!"?450:600);
-}
-$("countdown").textContent="";
-
-const duration=3300;
-const start=performance.now();
-let last=0;
-
-await new Promise(resolve=>{
-  function step(now){
-    const elapsed=now-start;
-    const progress=Math.min(1,elapsed/duration);
-    const interval=45 + Math.pow(progress,3)*320;
-
-    if(now-last>=interval){
-      last=now;
-      const x=a[Math.floor(Math.random()*a.length)];
-      $("num").textContent=String(x.no).padStart(3,"0");
-      $("winner").textContent=x.p.name||"名前未入力";
-      $("drawCard").classList.remove("shake");
-      void $("drawCard").offsetWidth;
-      $("drawCard").classList.add("shake");
+  try{
+    // 3 → 2 → 1 → GO!
+    for(const text of ["3","2","1","GO!"]){
+      if($("countdown")){
+        $("countdown").textContent = text;
+        $("countdown").classList.remove("pop");
+        void $("countdown").offsetWidth;
+        $("countdown").classList.add("pop");
+      }
+      await new Promise(r => setTimeout(r, text==="GO!" ? 450 : 550));
     }
 
-    if(progress<1) requestAnimationFrame(step);
-    else resolve();
+    if($("countdown")) $("countdown").textContent = "";
+
+    // Safariでも安定しやすい単純なsetInterval式
+    await new Promise(resolve=>{
+      let count = 0;
+      const max = 52;
+      const timer = setInterval(()=>{
+        const pick = pool[Math.floor(Math.random()*pool.length)];
+        $("num").textContent = String(pick.no).padStart(3,"0");
+        $("winner").textContent = pick.p.name || "名前未入力";
+
+        count++;
+        if(count >= max){
+          clearInterval(timer);
+          resolve();
+        }
+      }, 70);
+    });
+
+    // 最終当選
+    const win = pool[Math.floor(Math.random()*pool.length)];
+    $("num").textContent = String(win.no).padStart(3,"0");
+    $("winner").textContent = "🎉 " + (win.p.name || "名前未入力") + " さん当選！";
+
+    const target = people.find(p => p.id === win.p.id);
+    if(target) target.active = false;
+
+    winners.push({
+      name: win.p.name || "名前未入力",
+      ticketNo: win.no,
+      personId: win.p.id,
+      wonAt: new Date().toISOString()
+    });
+
+    drawing = false;
+    render();
+    await saveCloud();
+
+    // 当選演出は存在するときだけ実行
+    if(typeof burstConfetti === "function") burstConfetti(110);
+
+    if($("overlayName") && $("overlayTicket") && $("winnerOverlay")){
+      $("overlayName").textContent = (win.p.name || "名前未入力") + " さん";
+      $("overlayTicket").textContent = "🎟 抽選券 " + String(win.no).padStart(3,"0");
+      $("winnerOverlay").classList.remove("hidden");
+    }
+
+    if(winners.length >= 3){
+      $("winner").textContent += " 🏆 3名決定！";
+    }
+
+  }catch(err){
+    console.error(err);
+    alert("抽選処理でエラーが発生しました。ページを再読み込みしてもう一度お試しください。");
+    drawing = false;
+    update();
+    setStatus("抽選エラー","err");
   }
-  requestAnimationFrame(step);
-});
-
-const win=a[Math.floor(Math.random()*a.length)];
-
-$("num").textContent=String(win.no).padStart(3,"0");
-$("winner").textContent="🎉 "+(win.p.name||"名前未入力")+" さん当選！";
-
-const target=people.find(p=>p.id===win.p.id);
-if(target)target.active=false;
-
-winners.push({
-name:win.p.name||"名前未入力",
-ticketNo:win.no,
-personId:win.p.id,
-wonAt:new Date().toISOString()
-});
-
-drawing=false;
-render();
-await saveCloud();
-
-showWinnerOverlay(win.p.name||"名前未入力",win.no);
-
-if(winners.length>=3){
-$("winner").textContent+=" 🏆 3名決定！";
-}
 }
 
 async function doLogin(){
