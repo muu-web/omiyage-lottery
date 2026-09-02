@@ -651,6 +651,16 @@ async function draw(){
     return;
   }
 
+  // 本当の当選者は最初に確定しておく。
+  // 以降のフェイク演出ではこの結果を変更しない。
+  const win = pool[Math.floor(Math.random()*pool.length)];
+
+  // フェイク停止用：本当の当選券とは別の券を優先
+  const fakeCandidates = pool.filter(x => x.no !== win.no);
+  const fake = fakeCandidates.length
+    ? fakeCandidates[Math.floor(Math.random()*fakeCandidates.length)]
+    : win;
+
   drawing = true;
   update();
   setStatus("🎰 抽選中…","sync");
@@ -671,10 +681,10 @@ async function draw(){
 
     if($("countdown")) $("countdown").textContent = "";
 
-    // Safariでも安定しやすい単純なsetInterval式
+    // 1回目：しっかり回す
     await new Promise(resolve=>{
       let count = 0;
-      const max = 90;
+      const max = 62;
       const timer = setInterval(()=>{
         const pick = pool[Math.floor(Math.random()*pool.length)];
         $("num").textContent = String(pick.no).padStart(3,"0");
@@ -688,11 +698,37 @@ async function draw(){
       }, 70);
     });
 
-    // 最終当選
-    const win = pool[Math.floor(Math.random()*pool.length)];
+    // フェイク停止
+    $("num").textContent = String(fake.no).padStart(3,"0");
+    $("winner").textContent = "…… " + (fake.p.name || "名前未入力") + " さん？";
+    await new Promise(r => setTimeout(r, 1200));
+
+    $("winner").textContent = "😏 ……まだ！";
+    await new Promise(r => setTimeout(r, 850));
+
+    // 2回目：再回転
+    await new Promise(resolve=>{
+      let count = 0;
+      const max = 42;
+      const timer = setInterval(()=>{
+        const pick = pool[Math.floor(Math.random()*pool.length)];
+        $("num").textContent = String(pick.no).padStart(3,"0");
+        $("winner").textContent = pick.p.name || "名前未入力";
+
+        count++;
+        if(count >= max){
+          clearInterval(timer);
+          resolve();
+        }
+      }, 72);
+    });
+
+    // 本当の当選番号で停止
     $("num").textContent = String(win.no).padStart(3,"0");
     $("winner").textContent = "・・・";
-    await new Promise(r => setTimeout(r, 1500));
+    await new Promise(r => setTimeout(r, 1600));
+
+    // 本当の当選者を表示
     $("winner").textContent = "🎉 " + (win.p.name || "名前未入力") + " さん当選！";
 
     const target = people.find(p => p.id === win.p.id);
@@ -709,8 +745,7 @@ async function draw(){
     render();
     await saveCloud();
 
-    // 当選演出は存在するときだけ実行
-    if(typeof burstConfetti === "function") burstConfetti(110);
+    if(typeof burstConfetti === "function") burstConfetti(130);
 
     if($("overlayName") && $("overlayTicket") && $("winnerOverlay")){
       $("overlayName").textContent = (win.p.name || "名前未入力") + " さん";
@@ -719,7 +754,7 @@ async function draw(){
     }
 
     if(winners.length >= winnerTarget){
-      $("winner").textContent += " 🏆 3名決定！";
+      $("winner").textContent += ` 🏆 ${winnerTarget}名決定！`;
     }
 
   }catch(err){
